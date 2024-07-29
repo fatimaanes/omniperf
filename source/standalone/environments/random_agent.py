@@ -34,6 +34,7 @@ import gymnasium as gym
 import torch
 
 import omni.isaac.lab_tasks  # noqa: F401
+import humanoid.tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import parse_env_cfg
 
 
