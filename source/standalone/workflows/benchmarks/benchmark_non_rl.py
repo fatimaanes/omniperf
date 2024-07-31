@@ -61,7 +61,7 @@ enable_extension("omni.isaac.benchmark.services")
 from omni.isaac.benchmark.services import BaseIsaacBenchmark
 
 from omni.isaac.lab.utils.timer import Timer
-from source.standalone.workflows.benchmarks.utils import (
+from utils import (
     log_app_start_time,
     log_python_imports_time,
     log_runtime_step_times,
@@ -82,6 +82,7 @@ from datetime import datetime
 from omni.isaac.lab.utils.dict import print_dict
 
 import omni.isaac.lab_tasks  # noqa: F401
+import humanoid.tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import parse_env_cfg
 
 imports_time_end = time.perf_counter_ns()

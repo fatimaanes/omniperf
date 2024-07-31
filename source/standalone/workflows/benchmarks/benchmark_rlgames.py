@@ -82,7 +82,7 @@ from omni.isaac.lab_tasks.utils.wrappers.rl_games import RlGamesGpuEnv, RlGamesV
 imports_time_end = time.perf_counter_ns()
 
 from omni.isaac.lab.utils.timer import Timer
-from source.standalone.workflows.benchmarks.utils import (
+from utils import (
     log_app_start_time,
     log_python_imports_time,
     log_rl_policy_episode_lengths,
