@@ -31,6 +31,7 @@ import torch
 import omni.isaac.lab.sim as sim_utils
 import omni.isaac.lab.envs.mdp as mdp
 
+
 @configclass
 class EventCfg:
     """Configuration for randomization."""
@@ -40,7 +41,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("box"),
+            "asset_cfg": SceneEntityCfg("cracker_box"), # SceneEntityCfg("box")
             "pose_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "yaw": (-3.14, 3.14)},
             "velocity_range": {},
         },
@@ -103,6 +104,62 @@ class PushBoxEnvCfg(DirectRLEnvCfg):
     # goal object
     goal_object_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/goal")
     goal_object_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+
+    # tomato soup can
+    tomato_soup_can: RigidObjectCfg = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/TomatoSoupCan",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.8, -0.25, 1.06), rot=(0.7071068, -0.7071068, 0, 0)),
+        spawn=UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/YCB/Axis_Aligned_Physics/005_tomato_soup_can.usd",
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                kinematic_enabled=False,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+    )
+    # sugar box (yellow box)
+    sugar_box: RigidObjectCfg = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/SugarBox",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.8, 0.0, 1.06), rot=(1, 0, 0, 0)),
+        spawn=UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/YCB/Axis_Aligned_Physics/004_sugar_box.usd",
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                kinematic_enabled=False,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+    )
+    # cracker box (red box)
+    cracker_box: RigidObjectCfg = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/CrackerBox",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.8, 0.35, 1.06), rot=(1, 0, 0, 0)),
+        spawn=UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/YCB/Axis_Aligned_Physics/003_cracker_box.usd",
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+                max_angular_velocity=1000.0,
+                max_linear_velocity=1000.0,
+                max_depenetration_velocity=5.0,
+                kinematic_enabled=False,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+    )
+
     # camera
     camera = CameraCfg(
         prim_path="/World/envs/env_.*/Robot/d435_rgb_module_link/camera",
@@ -148,7 +205,8 @@ class PushBoxEnv(DirectRLEnv):
         self.robot_dof_lower_limits = self.robot.data.soft_joint_pos_limits[0, :, 0].to(device=self.device)
         self.robot_dof_upper_limits = self.robot.data.soft_joint_pos_limits[0, :, 1].to(device=self.device)
         self.dt = self.cfg.sim.dt * self.cfg.decimation
-        self.object_default_pos = torch.tensor(self.cfg.box.init_state.pos, dtype=torch.float, device=self.device)
+        # self.object_default_pos = torch.tensor(self.cfg.box.init_state.pos, dtype=torch.float, device=self.device)
+        self.object_default_pos = torch.tensor(self.cfg.cracker_box.init_state.pos, dtype=torch.float, device=self.device)
         # unit tensors
         self.z_unit_tensor = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
 
@@ -156,17 +214,25 @@ class PushBoxEnv(DirectRLEnv):
         # add robot
         self.robot = Articulation(self.cfg.robot)
         # add box
-        self.box = RigidObject(self.cfg.box)
+        #self.box = RigidObject(self.cfg.box)
         # add camera
         self.camera = Camera(self.cfg.camera)
         self.third_person_camera = Camera(self.cfg.third_person_camera)
+
+        self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
+        self.sugar_box = RigidObject(self.cfg.sugar_box) # yellow box
+        self.cracker_box = RigidObject(self.cfg.cracker_box) # red box
+
         # add ground plane
         spawn_ground_plane(prim_path="/World/ground", cfg=GroundPlaneCfg())
         # clone and replicate (no need to filter for this environment)
         self.scene.clone_environments(copy_from_source=False)
         # register humanoid and box
         self.scene.articulations["robot"] = self.robot
-        self.scene.rigid_objects["box"] = self.box
+        #self.scene.rigid_objects["box"] = self.box
+        self.scene.rigid_objects["tomato_soup_can"] = self.tomato_soup_can
+        self.scene.rigid_objects["sugar_box"] = self.sugar_box
+        self.scene.rigid_objects["cracker_box"] = self.cracker_box
         self.scene.sensors["camera"] = self.camera
         self.scene.sensors["third_person_camera"] = self.third_person_camera
         # add table
@@ -198,8 +264,10 @@ class PushBoxEnv(DirectRLEnv):
         self.robot.set_joint_position_target(self.actions)
             
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        goal_dist_pos = torch.norm(self.goal_pos_w - self.box.data.root_state_w[:, :3], p=2, dim=-1)
-        goal_dist_quat = torch.norm(self.goal_quat - self.box.data.root_state_w[:, 3:7], p=2, dim=-1)
+        goal_dist_pos = torch.norm(self.goal_pos_w - self.cracker_box.data.root_state_w[:, :3], p=2, dim=-1)
+        goal_dist_quat = torch.norm(self.goal_quat - self.cracker_box.data.root_state_w[:, 3:7], p=2, dim=-1)
+        # goal_dist_pos = torch.norm(self.goal_pos_w - self.box.data.root_state_w[:, :3], p=2, dim=-1)
+        # goal_dist_quat = torch.norm(self.goal_quat - self.box.data.root_state_w[:, 3:7], p=2, dim=-1)
         success_buf = (goal_dist_pos < self.cfg.pos_done_threshold) & (goal_dist_quat < self.cfg.quat_done_threshold)
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         return success_buf, time_out
@@ -249,4 +317,4 @@ class PushBoxEnv(DirectRLEnv):
         return observation
     
     def _get_rewards(self) -> torch.Tensor:
-        return torch.zeros_like(self.goal_pos_w)
+        return torch.zeros(self.num_envs, device=self.device)

@@ -179,3 +179,6 @@ class TightenScrewEnv(DirectRLEnv):
             dim=-1,
         )
         return {"policy": states}
+    
+    def _get_rewards(self) -> torch.Tensor:
+        return torch.zeros(self.num_envs, device=self.device)
