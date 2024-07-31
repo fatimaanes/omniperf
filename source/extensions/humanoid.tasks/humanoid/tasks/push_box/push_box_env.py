@@ -15,6 +15,7 @@ from omni.isaac.lab.markers.visualization_markers import VisualizationMarkers, V
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.sensors.camera.camera import Camera
 from omni.isaac.lab.sensors.camera.camera_cfg import CameraCfg
+from omni.isaac.lab.sensors import TiledCamera, TiledCameraCfg, save_images_to_file
 from omni.isaac.lab.sim import SimulationCfg
 from omni.isaac.lab.sim.spawners.from_files.from_files import spawn_ground_plane
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
@@ -160,30 +161,55 @@ class PushBoxEnvCfg(DirectRLEnvCfg):
         ),
     )
 
-    # camera
+    # cameras
+    width = 320
+    height = 240
     camera = CameraCfg(
         prim_path="/World/envs/env_.*/Robot/d435_rgb_module_link/camera",
         # update_period=0.1,
-        height=1280,
-        width=720,
-        data_types=["rgb", "distance_to_image_plane"],
+        width = width,
+        height = height,
+        #data_types=["rgb", "distance_to_image_plane"],
+        data_types=["rgb"],
         spawn=sim_utils.FisheyeCameraCfg(
             focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
         ),
-        offset = CameraCfg.OffsetCfg(pos=(0.05, 0.0, 0.0), rot=(1, 0, 0, 0), convention="ros"),
+        offset = CameraCfg.OffsetCfg(pos=(0.05, 0.0, 0.0), rot=(1, 0, 0, 0), convention="opengl"), # "ros"
+    )
+    tiled_camera: TiledCameraCfg = TiledCameraCfg(
+        prim_path="/World/envs/env_.*/Robot/d435_rgb_module_link/camera",
+        width = width,
+        height = height,
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.27, 1.5), rot=(0.0, 0.0, 0.0, -1.0), convention="opengl"),
+        # offset=TiledCameraCfg.OffsetCfg(pos=(-2.0, 0.0, 0.75), rot=(-0.5, -0.5, 0.5, 0.5), convention="opengl"),
+        data_types=["rgba"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+        ),
     )
     third_person_camera = CameraCfg(
         prim_path="/World/envs/env_.*/camera",
         # update_period=0.1,
-        height=384,
-        width=384,
-        data_types=["rgb", "distance_to_image_plane"],
+        width = width,
+        height = height,
+        #data_types=["rgb", "distance_to_image_plane"],
+        data_types=["rgb"],
         spawn=sim_utils.FisheyeCameraCfg(
             focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
         ),
         offset = CameraCfg.OffsetCfg(pos=(-0.36, 1.1, 1.7), rot=(0.28176, 0.22504, -0.52485, -0.77104), convention="opengl"),
     )
-    
+    tiled_third_person_camera: TiledCameraCfg = TiledCameraCfg(
+        prim_path="/World/envs/env_.*/tiled_camera",
+        width = width,
+        height = height,
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.0, -0.27, 1.5), rot=(0.0, 0.0, 0.0, -1.0), convention="opengl"),
+        # offset=TiledCameraCfg.OffsetCfg(pos=(-2.0, 0.0, 0.75), rot=(-0.5, -0.5, 0.5, 0.5), convention="opengl"),
+        data_types=["rgba"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+        ),
+    )
     # domain randomization config
     events: EventCfg = EventCfg()
     # env
@@ -216,8 +242,12 @@ class PushBoxEnv(DirectRLEnv):
         # add box
         #self.box = RigidObject(self.cfg.box)
         # add camera
-        self.camera = Camera(self.cfg.camera)
-        self.third_person_camera = Camera(self.cfg.third_person_camera)
+        #self.third_person_camera = Camera(self.cfg.third_person_camera)
+
+        self.camera = Camera(self.cfg.third_person_camera)
+        # self.camera = Camera(self.cfg.camera)
+        # self.camera = Camera(self.cfg.tiled_third_person_camera)
+        # self.camera = Camera(self.cfg.tiled_camera)
 
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
         self.sugar_box = RigidObject(self.cfg.sugar_box) # yellow box
@@ -233,8 +263,10 @@ class PushBoxEnv(DirectRLEnv):
         self.scene.rigid_objects["tomato_soup_can"] = self.tomato_soup_can
         self.scene.rigid_objects["sugar_box"] = self.sugar_box
         self.scene.rigid_objects["cracker_box"] = self.cracker_box
+
+        # after Hydra config support is available, we can set reolutions and camera type from the command line
         self.scene.sensors["camera"] = self.camera
-        self.scene.sensors["third_person_camera"] = self.third_person_camera
+        #self.scene.sensors["third_person_camera"] = self.third_person_camera
         # add table
         self.cfg.table.spawn.func(
             self.cfg.table.prim_path,
@@ -305,7 +337,7 @@ class PushBoxEnv(DirectRLEnv):
 
     def _get_observations(self) -> dict:
         data_type = "rgb" #  distance_to_image_plane
-        observation = self.third_person_camera.data.output[data_type].clone()[:, :, :, :3]
+        observation = self.camera.data.output[data_type].clone()[:, :, :, :3]
         
         save_to_file = False
         if save_to_file:
