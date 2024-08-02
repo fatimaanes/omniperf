@@ -13,6 +13,7 @@ from omni.isaac.lab.envs.direct_rl_env import DirectRLEnv
 from omni.isaac.lab.markers.config import FRAME_MARKER_CFG
 from omni.isaac.lab.markers.visualization_markers import VisualizationMarkers, VisualizationMarkersCfg
 from omni.isaac.lab.scene import InteractiveSceneCfg
+from omni.isaac.lab.actuators.actuator_cfg import ImplicitActuatorCfg
 from omni.isaac.lab.sensors.camera.camera import Camera
 from omni.isaac.lab.sensors.camera.camera_cfg import CameraCfg
 from omni.isaac.lab.sensors import TiledCamera, TiledCameraCfg, save_images_to_file
@@ -160,6 +161,40 @@ class PushBoxEnvCfg(DirectRLEnvCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
     )
+    # cabinet
+    cabinet = ArticulationCfg(
+        prim_path="/World/envs/env_.*/Cabinet",
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Sektion_Cabinet/sektion_cabinet_instanceable.usd",
+            activate_contact_sensors=False,
+        ),
+        init_state=ArticulationCfg.InitialStateCfg(
+            pos=(-1.6, 2.2, 0.6),
+            rot=(1, 0, 0, 0),
+            joint_pos={
+                "door_left_joint": 0.0,
+                "door_right_joint": 0.0,
+                "drawer_bottom_joint": 0.0,
+                "drawer_top_joint": 0.0,
+            },
+        ),
+        actuators={
+            "drawers": ImplicitActuatorCfg(
+                joint_names_expr=["drawer_top_joint", "drawer_bottom_joint"],
+                effort_limit=87.0,
+                velocity_limit=100.0,
+                stiffness=10.0,
+                damping=1.0,
+            ),
+            "doors": ImplicitActuatorCfg(
+                joint_names_expr=["door_left_joint", "door_right_joint"],
+                effort_limit=87.0,
+                velocity_limit=100.0,
+                stiffness=10.0,
+                damping=2.5,
+            ),
+        },
+    )
 
     # cameras
     width = 320
@@ -248,6 +283,7 @@ class PushBoxEnv(DirectRLEnv):
         # self.camera = Camera(self.cfg.tiled_third_person_camera)
         # self.camera = Camera(self.cfg.tiled_camera)
 
+        self.cabinet = Articulation(self.cfg.cabinet)
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
         self.sugar_box = RigidObject(self.cfg.sugar_box) # yellow box
         self.cracker_box = RigidObject(self.cfg.cracker_box) # red box
@@ -258,6 +294,7 @@ class PushBoxEnv(DirectRLEnv):
         self.scene.clone_environments(copy_from_source=False)
         # register humanoid and box
         self.scene.articulations["robot"] = self.robot
+        self.scene.articulations["cabinet"] = self.cabinet
         self.scene.rigid_objects["tomato_soup_can"] = self.tomato_soup_can
         self.scene.rigid_objects["sugar_box"] = self.sugar_box
         self.scene.rigid_objects["cracker_box"] = self.cracker_box
@@ -293,6 +330,7 @@ class PushBoxEnv(DirectRLEnv):
     def _apply_action(self) -> None:
         self.actions[:] = torch.clamp(self.actions, self.robot_dof_lower_limits, self.robot_dof_upper_limits)
         self.robot.set_joint_position_target(self.actions)
+        self.robot.write_data_to_sim()
             
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         goal_dist_pos = torch.norm(self.goal_pos_w - self.cracker_box.data.root_state_w[:, :3], p=2, dim=-1)
