@@ -239,12 +239,11 @@ class PushBoxEnv(DirectRLEnv):
     def _setup_scene(self):
         # add robot
         self.robot = Articulation(self.cfg.robot)
-        # add box
-        #self.box = RigidObject(self.cfg.box)
-        # add camera
-        #self.third_person_camera = Camera(self.cfg.third_person_camera)
 
-        self.camera = Camera(self.cfg.third_person_camera)
+        self.state_only = True
+
+        if not self.state_only:
+            self.camera = Camera(self.cfg.third_person_camera)
         # self.camera = Camera(self.cfg.camera)
         # self.camera = Camera(self.cfg.tiled_third_person_camera)
         # self.camera = Camera(self.cfg.tiled_camera)
@@ -259,14 +258,14 @@ class PushBoxEnv(DirectRLEnv):
         self.scene.clone_environments(copy_from_source=False)
         # register humanoid and box
         self.scene.articulations["robot"] = self.robot
-        #self.scene.rigid_objects["box"] = self.box
         self.scene.rigid_objects["tomato_soup_can"] = self.tomato_soup_can
         self.scene.rigid_objects["sugar_box"] = self.sugar_box
         self.scene.rigid_objects["cracker_box"] = self.cracker_box
 
         # after Hydra config support is available, we can set reolutions and camera type from the command line
-        self.scene.sensors["camera"] = self.camera
-        #self.scene.sensors["third_person_camera"] = self.third_person_camera
+        if not self.state_only:
+            self.scene.sensors["camera"] = self.camera
+
         # add table
         self.cfg.table.spawn.func(
             self.cfg.table.prim_path,
@@ -337,16 +336,38 @@ class PushBoxEnv(DirectRLEnv):
 
     def _get_observations(self) -> dict:
         data_type = "rgb" #  distance_to_image_plane
-        observation = self.camera.data.output[data_type].clone()[:, :, :, :3]
+        if not self.state_only:
+            observations = self.camera.data.output[data_type].clone()[:, :, :, :3]
+        else:
+            observations = torch.zeros((self.num_envs, self.cfg.height, self.cfg.width, 3), device=self.device)
         
         save_to_file = False
         if save_to_file:
-            obs_cpu = observation.to('cpu')
+            obs_cpu = observations.to('cpu')
             img = obs_cpu[0].numpy()
             img_pil = Image.fromarray(img)
             file_path = "humanoid-push-box-rgb.png"
 
-        return observation
+        states = torch.zeros(self.num_envs, self.cfg.num_observations, device=self.device)
+
+        # states = torch.cat(
+        #     (
+        #         # humanoid
+        #         self.robot.data.root_pos_w - self.scene.env_origins,
+        #         self.robot.data.joint_pos,
+        #         self.robot.data.joint_vel,
+        #         # object
+        #         self.bolt.data.root_state_w, - self.scene.env_origins,
+        #         self.bolt.data.root_quat_w,
+        #         self.nut.data.root_state_w, - self.scene.env_origins,
+        #         self.nut.data.root_quat_w,
+        #         # actions
+        #         self.actions,
+        #     ),
+        #     dim=-1,
+        # )
+
+        return {"camera": observations, "policy": states}
     
     def _get_rewards(self) -> torch.Tensor:
         return torch.zeros(self.num_envs, device=self.device)
