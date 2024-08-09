@@ -5,6 +5,8 @@
 
 """Custom kernels for warp."""
 
+from typing import Any
+
 import warp as wp
 
 
@@ -75,6 +77,51 @@ def raycast_mesh_kernel(
 
 @wp.kernel
 def reshape_tiled_image(
+    tiled_image_buffer: Any,
+    batched_image: wp.array(dtype=float, ndim=4),
+    image_height: int,
+    image_width: int,
+    num_channels: int,
+    num_tiles_x: int,
+):
+    """Reshapes a tiled image into a batch of images.
+
+    This function reshapes the input tiled image buffer into a batch of images. The input image buffer
+    is assumed to be tiled in the x and y directions. The output image is a batch of images with the
+    specified height, width, and number of channels.
+
+    Args:
+        tiled_image_buffer: The input image buffer. Shape is (height * width * num_channels * num_cameras,).
+        batched_image: The output image. Shape is (num_cameras, height, width, num_channels).
+        image_width: The width of the image.
+        image_height: The height of the image.
+        num_channels: The number of channels in the image.
+        num_tiles_x: The number of tiles in x-direction.
+    """
+    # get the thread id
+    camera_id, height_id, width_id = wp.tid()
+
+    # resolve the tile indices
+    tile_x_id = camera_id % num_tiles_x
+    tile_y_id = camera_id // num_tiles_x
+    # compute the start index of the pixel in the tiled image buffer
+    pixel_start = (
+        num_channels * num_tiles_x * image_width * (image_height * tile_y_id + height_id)
+        + num_channels * tile_x_id * image_width
+        + num_channels * width_id
+    )
+
+    # copy the pixel values into the batched image
+    for i in range(num_channels):
+        batched_image[camera_id, height_id, width_id, i] = wp.float32(tiled_image_buffer[pixel_start + i])
+
+
+wp.overload(reshape_tiled_image, {"tiled_image_buffer": wp.array(dtype=wp.uint8)})
+wp.overload(reshape_tiled_image, {"tiled_image_buffer": wp.array(dtype=wp.float32)})
+
+
+@wp.kernel
+def reshape_tiled_image_old(
     tiled_image_buffer: wp.array(dtype=float),
     batched_image: wp.array(dtype=float, ndim=4),
     image_height: int,
