@@ -275,7 +275,7 @@ class PushBoxEnv(DirectRLEnv):
         # add robot
         self.robot = Articulation(self.cfg.robot)
 
-        self.state_only = True
+        self.state_only = os.environ.get("ISAAC_LAB_ENABLE_CAMERA", False)
 
         if not self.state_only:
             camera_type = os.environ.get("ISAAC_LAB_CAMERA_TYPE", "THIRD_PERSON_CAMERA")
