@@ -83,7 +83,7 @@ from omni.isaac.lab_tasks.utils.wrappers.rl_games import RlGamesGpuEnv, RlGamesV
 imports_time_end = time.perf_counter_ns()
 
 from omni.isaac.lab.utils.timer import Timer
-from utils import (
+from source.standalone.workflows.benchmarks.utils import (
     log_app_start_time,
     log_python_imports_time,
     log_rl_policy_episode_lengths,
@@ -235,8 +235,8 @@ def main():
     log_simulation_start_time(benchmark, Timer.get_timer_info("simulation_start") * 1000)
     log_total_start_time(benchmark, (task_startup_time_end - app_start_time_begin) / 1e6)
     log_runtime_step_times(benchmark, rl_training_times, compute_stats=True)
-#    log_rl_policy_rewards(benchmark, log_data["rewards/iter"])
-#    log_rl_policy_episode_lengths(benchmark, log_data["episode_lengths/iter"])
+    log_rl_policy_rewards(benchmark, log_data["rewards/iter"])
+    log_rl_policy_episode_lengths(benchmark, log_data["episode_lengths/iter"])
 
     benchmark.stop()
 

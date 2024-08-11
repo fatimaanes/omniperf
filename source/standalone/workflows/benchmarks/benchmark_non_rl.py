@@ -61,7 +61,7 @@ enable_extension("omni.isaac.benchmark.services")
 from omni.isaac.benchmark.services import BaseIsaacBenchmark
 
 from omni.isaac.lab.utils.timer import Timer
-from utils import (
+from source.standalone.workflows.benchmarks.utils import (
     log_app_start_time,
     log_python_imports_time,
     log_runtime_step_times,
