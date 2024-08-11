@@ -64,6 +64,49 @@ class TiledCameraCfg(SensorBaseCfg):
     height: int = MISSING
     """Height of the image in pixels."""
 
+
+    semantic_filter: str | list[str] = "*:*"
+    """A string or a list specifying a semantic filter predicate. Defaults to ``"*:*"``.
+
+    If a string, it should be a disjunctive normal form of (semantic type, labels). For examples:
+
+    * ``"typeA : labelA & !labelB | labelC , typeB: labelA ; typeC: labelE"``:
+      All prims with semantic type "typeA" and label "labelA" but not "labelB" or with label "labelC".
+      Also, all prims with semantic type "typeB" and label "labelA", or with semantic type "typeC" and label "labelE".
+    * ``"typeA : * ; * : labelA"``: All prims with semantic type "typeA" or with label "labelA"
+
+    If a list of strings, each string should be a semantic type. The segmentation for prims with
+    semantics of the specified types will be retrieved. For example, if the list is ["class"], only
+    the segmentation for prims with semantics of type "class" will be retrieved.
+
+    .. seealso::
+
+        For more information on the semantics filter, see the documentation on `Replicator Semantics Schema Editor`_.
+
+    .. _Replicator Semantics Schema Editor: https://docs.omniverse.nvidia.com/extensions/latest/ext_replicator/semantics_schema_editor.html#semantics-filtering
+    """
+
+    # colorize_semantic_segmentation: bool = True
+    # """Whether to colorize the semantic segmentation images. Defaults to True.
+
+    # If True, semantic segmentation is converted to an image where semantic IDs are mapped to colors
+    # and returned as a ``uint8`` 4-channel array. If False, the output is returned as a ``int32`` array.
+    # """
+
+    # colorize_instance_id_segmentation: bool = True
+    # """Whether to colorize the instance ID segmentation images. Defaults to True.
+
+    # If True, instance id segmentation is converted to an image where instance IDs are mapped to colors.
+    # and returned as a ``uint8`` 4-channel array. If False, the output is returned as a ``int32`` array.
+    # """
+
+    # colorize_instance_segmentation: bool = True
+    # """Whether to colorize the instance ID segmentation images. Defaults to True.
+
+    # If True, instance segmentation is converted to an image where instance IDs are mapped to colors.
+    # and returned as a ``uint8`` 4-channel array. If False, the output is returned as a ``int32`` array.
+    # """
+
     return_latest_camera_pose: bool = False
     """Whether to return the latest camera pose when fetching the camera's data. Defaults to False.
 
