@@ -197,8 +197,8 @@ class PushBoxEnvCfg(DirectRLEnvCfg):
     )
 
     # cameras
-    width = 320
-    height = 240
+    width = int(os.environ.get("ISAAC_LAB_CAMERA_WIDTH", 320))
+    height = int(os.environ.get("ISAAC_LAB_CAMERA_HEIGHT", 240))
     camera = CameraCfg(
         prim_path="/World/envs/env_.*/Robot/d435_rgb_module_link/camera",
         # update_period=0.1,
@@ -278,10 +278,15 @@ class PushBoxEnv(DirectRLEnv):
         self.state_only = True
 
         if not self.state_only:
-            self.camera = Camera(self.cfg.third_person_camera)
-        # self.camera = Camera(self.cfg.camera)
-        # self.camera = Camera(self.cfg.tiled_third_person_camera)
-        # self.camera = Camera(self.cfg.tiled_camera)
+            camera_type = os.environ.get("ISAAC_LAB_CAMERA_TYPE", "THIRD_PERSON_CAMERA")
+            if camera_type == "THIRD_PERSON_CAMERA":
+                self.camera = Camera(self.cfg.third_person_camera)
+            elif camera_type == "CAMERA":
+                self.camera = Camera(self.cfg.camera)
+            elif camera_type == "TILED_THIRD_PERSON_CAMERA":
+                self.camera = Camera(self.cfg.tiled_third_person_camera)
+            elif camera_type == "TILED_CAMERA":
+                self.camera = Camera(self.cfg.tiled_camera)
 
         self.cabinet = Articulation(self.cfg.cabinet)
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
