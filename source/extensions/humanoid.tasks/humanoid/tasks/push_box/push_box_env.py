@@ -306,7 +306,7 @@ class PushBoxEnv(DirectRLEnv):
 
         # after Hydra config support is available, we can set reolutions and camera type from the command line
         if not self.state_only:
-            self.scene.sensors["camera"] = self.cfg.tiled_camera.class_type(self.cfg.tiled_camera)
+            self.scene.sensors["camera"] = self.camera
 
         # add table
         self.cfg.table.spawn.func(
