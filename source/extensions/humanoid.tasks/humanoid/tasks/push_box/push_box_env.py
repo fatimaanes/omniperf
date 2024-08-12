@@ -278,10 +278,10 @@ class PushBoxEnv(DirectRLEnv):
         self.state_only = False
 
         if not self.state_only:
-            # self.camera = Camera(self.cfg.third_person_camera)
+            self.camera = Camera(self.cfg.third_person_camera)
             # self.camera = Camera(self.cfg.camera)
-            self.camera = Camera(self.cfg.tiled_third_person_camera)
-            # self.camera = Camera(self.cfg.tiled_camera)
+            # self.camera = TiledCamera(self.cfg.tiled_third_person_camera)
+            # self.camera = TiledCamera(self.cfg.tiled_camera)
 
         self.cabinet = Articulation(self.cfg.cabinet)
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
