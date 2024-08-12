@@ -284,9 +284,9 @@ class PushBoxEnv(DirectRLEnv):
             elif camera_type == "CAMERA":
                 self.camera = Camera(self.cfg.camera)
             elif camera_type == "TILED_THIRD_PERSON_CAMERA":
-                self.camera = Camera(self.cfg.tiled_third_person_camera)
+                self.camera = TiledCamera(self.cfg.tiled_third_person_camera)
             elif camera_type == "TILED_CAMERA":
-                self.camera = Camera(self.cfg.tiled_camera)
+                self.camera = TiledCamera(self.cfg.tiled_camera)
 
         self.cabinet = Articulation(self.cfg.cabinet)
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
@@ -306,7 +306,7 @@ class PushBoxEnv(DirectRLEnv):
 
         # after Hydra config support is available, we can set reolutions and camera type from the command line
         if not self.state_only:
-            self.scene.sensors["camera"] = self.camera
+            self.scene.sensors["tiled_camera"] = self.cfg.tiled_camera.class_type(self.cfg.tiled_camera)
 
         # add table
         self.cfg.table.spawn.func(
