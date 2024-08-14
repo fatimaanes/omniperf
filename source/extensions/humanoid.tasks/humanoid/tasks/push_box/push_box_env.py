@@ -67,7 +67,7 @@ class PushBoxEnvCfg(DirectRLEnvCfg):
         debug_vis=False,
     )
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16, env_spacing=8.0, replicate_physics=False)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=16, env_spacing=8.0, replicate_physics=True)
     # robot
     robot: ArticulationCfg = H1_WITH_HAND_CFG.replace(prim_path="/World/envs/env_.*/Robot") # type: ignore
     # table
@@ -278,10 +278,10 @@ class PushBoxEnv(DirectRLEnv):
         self.state_only = False
 
         if not self.state_only:
-            self.camera = Camera(self.cfg.third_person_camera)
+            # self.camera = Camera(self.cfg.third_person_camera)
             # self.camera = Camera(self.cfg.camera)
             # self.camera = TiledCamera(self.cfg.tiled_third_person_camera)
-            # self.camera = TiledCamera(self.cfg.tiled_camera)
+            self.camera = TiledCamera(self.cfg.tiled_camera)
 
         self.cabinet = Articulation(self.cfg.cabinet)
         self.tomato_soup_can = RigidObject(self.cfg.tomato_soup_can)
