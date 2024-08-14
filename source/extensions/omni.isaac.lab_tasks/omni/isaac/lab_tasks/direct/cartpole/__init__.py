@@ -41,6 +41,16 @@ gym.register(
 )
 
 gym.register(
+    id="Isaac-Cartpole-RGB-Camera-Resnet-Direct-v0",
+    entry_point="omni.isaac.lab_tasks.direct.cartpole:CartpoleCameraEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": CartpoleRGBCameraEnvCfg,
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_camera_ppo_resnet18_cfg.yaml",
+    },
+)
+
+gym.register(
     id="Isaac-Cartpole-Depth-Camera-Direct-v0",
     entry_point="omni.isaac.lab_tasks.direct.cartpole:CartpoleCameraEnv",
     disable_env_checker=True,
