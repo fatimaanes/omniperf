@@ -63,6 +63,16 @@ gym.register(
 )
 
 gym.register(
+    id="Isaac-Shadow-Hand-RGB-Camera-Resnet-Direct-v0",
+    entry_point="omni.isaac.lab_tasks.direct.shadow_hand:ShadowHandCameraEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": ShadowHandRGBCameraEnvCfg,
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_camera_ppo_resnet_cfg.yaml",
+    },
+)
+
+gym.register(
     id="Isaac-Shadow-Hand-Depth-Camera-Direct-v0",
     entry_point="omni.isaac.lab_tasks.direct.shadow_hand:ShadowHandCameraEnv",
     disable_env_checker=True,
@@ -81,6 +91,17 @@ gym.register(
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_camera_cfg.yaml",
     },
 )
+
+gym.register(
+    id="Isaac-Shadow-Hand-RGBD-Camera-Resnet-Direct-v0",
+    entry_point="omni.isaac.lab_tasks.direct.shadow_hand:ShadowHandCameraEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": ShadowHandRGBDCameraEnvCfg,
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_camera_ppo_resnet_cfg.yaml",
+    },
+)
+
 
 
 # gym.register(

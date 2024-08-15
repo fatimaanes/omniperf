@@ -43,34 +43,34 @@ params:
 
     mlp:
       units: [512]
-      activation: relu
+      activation: elu
       initializer:
         name: default
       regularizer:
         name: None
 
-    rnn:
-      name: lstm
-      units: 256
-      layers: 1
+    # rnn:
+    #   name: lstm
+    #   units: 256
+    #   layers: 1
 
-      initializer:
-        name: default
-      regularizer:
-        name: None
+    #   initializer:
+    #     name: default
+    #   regularizer:
+    #     name: None
 
   load_checkpoint: False # flag which sets whether to load the checkpoint
   load_path: '' # path to the checkpoint to load
 
   config:
-    name: cartpole_camera_impala_norm
+    name: cartpole_camera_impala_mlp_elu_2GPU
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
     multi_gpu: False
     ppo: True
     mixed_precision: False
-    normalize_input: True
+    normalize_input: False
     normalize_value: True
     num_actors: -1  # configured from the script (based on num_envs)
     reward_shaper:
@@ -82,17 +82,17 @@ params:
     lr_schedule: adaptive
     kl_threshold: 0.008
     score_to_win: 20000
-    max_epochs: 500
-    save_best_after: 50
+    max_epochs: 5000
+    save_best_after: 25
     save_frequency: 50
     grad_norm: 1.0
     entropy_coef: 0.0
     truncate_grads: True
     e_clip: 0.2
-    horizon_length: 128
+    horizon_length: 64
     minibatch_size: 2048
-    mini_epochs: 4
-    critic_coef: 2
+    mini_epochs: 3
+    critic_coef: 1
     clip_value: True
-    seq_length: 4
+    seq_length: 8
     bounds_loss_coef: 0.0001
