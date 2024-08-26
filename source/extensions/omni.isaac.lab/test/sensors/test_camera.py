@@ -122,7 +122,7 @@ class TestCamera(unittest.TestCase):
             camera.update(self.dt)
             # check image data
             for im_data in camera.data.output.to_dict().values():
-                self.assertEqual(im_data.shape, (1, self.camera_cfg.height, self.camera_cfg.width))
+                self.assertEqual(im_data.shape, (1, self.camera_cfg.height, self.camera_cfg.width, 1))
 
     def test_camera_init_offset(self):
         """Test camera initialization with offset using different conventions."""
@@ -229,7 +229,7 @@ class TestCamera(unittest.TestCase):
             # check image data
             for cam in [cam_1, cam_2]:
                 for im_data in cam.data.output.to_dict().values():
-                    self.assertEqual(im_data.shape, (1, self.camera_cfg.height, self.camera_cfg.width))
+                    self.assertEqual(im_data.shape, (1, self.camera_cfg.height, self.camera_cfg.width, 1))
 
     def test_camera_set_world_poses(self):
         """Test camera function to set specific world pose."""
@@ -315,8 +315,12 @@ class TestCamera(unittest.TestCase):
         camera_cfg = copy.deepcopy(self.camera_cfg)
         camera_cfg.data_types = [
             "rgb",
+            "rgba",
+            "depth",
+            "distance_to_camera",
             "distance_to_image_plane",
             "normals",
+            "motion_vectors",
             "semantic_segmentation",
             "instance_segmentation_fast",
             "instance_id_segmentation_fast",
@@ -338,22 +342,32 @@ class TestCamera(unittest.TestCase):
         camera.update(self.dt)
 
         # expected sizes
-        hw_3c_shape = (1, camera_cfg.height, camera_cfg.width, 4)
-        hw_1c_shape = (1, camera_cfg.height, camera_cfg.width)
+        hw_1c_shape = (1, camera_cfg.height, camera_cfg.width, 1)
+        hw_2c_shape = (1, camera_cfg.height, camera_cfg.width, 2)
+        hw_3c_shape = (1, camera_cfg.height, camera_cfg.width, 3)
+        hw_4c_shape = (1, camera_cfg.height, camera_cfg.width, 4)
         # access image data and compare shapes
         output = camera.data.output
         self.assertEqual(output["rgb"].shape, hw_3c_shape)
+        self.assertEqual(output["rgba"].shape, hw_4c_shape)
+        self.assertEqual(output["depth"].shape, hw_1c_shape)
+        self.assertEqual(output["distance_to_camera"].shape, hw_1c_shape)
         self.assertEqual(output["distance_to_image_plane"].shape, hw_1c_shape)
         self.assertEqual(output["normals"].shape, hw_3c_shape)
-        self.assertEqual(output["semantic_segmentation"].shape, hw_3c_shape)
-        self.assertEqual(output["instance_segmentation_fast"].shape, hw_3c_shape)
-        self.assertEqual(output["instance_id_segmentation_fast"].shape, hw_3c_shape)
+        self.assertEqual(output["motion_vectors"].shape, hw_2c_shape)
+        self.assertEqual(output["semantic_segmentation"].shape, hw_4c_shape)
+        self.assertEqual(output["instance_segmentation_fast"].shape, hw_4c_shape)
+        self.assertEqual(output["instance_id_segmentation_fast"].shape, hw_4c_shape)
 
         # access image data and compare dtype
         output = camera.data.output
         self.assertEqual(output["rgb"].dtype, torch.uint8)
+        self.assertEqual(output["rgba"].dtype, torch.uint8)
+        self.assertEqual(output["depth"].dtype, torch.float)
+        self.assertEqual(output["distance_to_camera"].dtype, torch.float)
         self.assertEqual(output["distance_to_image_plane"].dtype, torch.float)
         self.assertEqual(output["normals"].dtype, torch.float)
+        self.assertEqual(output["motion_vectors"].dtype, torch.float)
         self.assertEqual(output["semantic_segmentation"].dtype, torch.uint8)
         self.assertEqual(output["instance_segmentation_fast"].dtype, torch.uint8)
         self.assertEqual(output["instance_id_segmentation_fast"].dtype, torch.uint8)
@@ -364,8 +378,12 @@ class TestCamera(unittest.TestCase):
         camera_cfg = copy.deepcopy(self.camera_cfg)
         camera_cfg.data_types = [
             "rgb",
+            "rgba",
+            "depth",
+            "distance_to_camera",
             "distance_to_image_plane",
             "normals",
+            "motion_vectors",
             "semantic_segmentation",
             "instance_segmentation_fast",
             "instance_id_segmentation_fast",
@@ -386,13 +404,19 @@ class TestCamera(unittest.TestCase):
         camera.update(self.dt)
 
         # expected sizes
-        hw_3c_shape = (1, camera_cfg.height, camera_cfg.width, 4)
-        hw_1c_shape = (1, camera_cfg.height, camera_cfg.width)
+        hw_1c_shape = (1, camera_cfg.height, camera_cfg.width, 1)
+        hw_2c_shape = (1, camera_cfg.height, camera_cfg.width, 2)
+        hw_3c_shape = (1, camera_cfg.height, camera_cfg.width, 3)
+        hw_4c_shape = (1, camera_cfg.height, camera_cfg.width, 4)
         # access image data and compare shapes
         output = camera.data.output
         self.assertEqual(output["rgb"].shape, hw_3c_shape)
+        self.assertEqual(output["rgba"].shape, hw_4c_shape)
+        self.assertEqual(output["depth"].shape, hw_1c_shape)
+        self.assertEqual(output["distance_to_camera"].shape, hw_1c_shape)
         self.assertEqual(output["distance_to_image_plane"].shape, hw_1c_shape)
         self.assertEqual(output["normals"].shape, hw_3c_shape)
+        self.assertEqual(output["motion_vectors"].shape, hw_2c_shape)
         self.assertEqual(output["semantic_segmentation"].shape, hw_1c_shape)
         self.assertEqual(output["instance_segmentation_fast"].shape, hw_1c_shape)
         self.assertEqual(output["instance_id_segmentation_fast"].shape, hw_1c_shape)
@@ -400,11 +424,99 @@ class TestCamera(unittest.TestCase):
         # access image data and compare dtype
         output = camera.data.output
         self.assertEqual(output["rgb"].dtype, torch.uint8)
+        self.assertEqual(output["rgba"].dtype, torch.uint8)
+        self.assertEqual(output["depth"].dtype, torch.float)
+        self.assertEqual(output["distance_to_camera"].dtype, torch.float)
         self.assertEqual(output["distance_to_image_plane"].dtype, torch.float)
         self.assertEqual(output["normals"].dtype, torch.float)
+        self.assertEqual(output["motion_vectors"].dtype, torch.float)
         self.assertEqual(output["semantic_segmentation"].dtype, torch.int32)
         self.assertEqual(output["instance_segmentation_fast"].dtype, torch.int32)
         self.assertEqual(output["instance_id_segmentation_fast"].dtype, torch.int32)
+
+    def test_camera_resolution_rgb_only(self):
+        """Test camera resolution is correctly set for RGB only."""
+        # Add all types
+        camera_cfg = copy.deepcopy(self.camera_cfg)
+        camera_cfg.data_types = [
+            "rgb",
+        ]
+        # Create camera
+        camera = Camera(camera_cfg)
+
+        # Play sim
+        self.sim.reset()
+
+        # Simulate for a few steps
+        # note: This is a workaround to ensure that the textures are loaded.
+        #   Check "Known Issues" section in the documentation for more details.
+        for _ in range(5):
+            self.sim.step()
+        camera.update(self.dt)
+
+        # expected sizes
+        hw_3c_shape = (1, camera_cfg.height, camera_cfg.width, 3)
+        # access image data and compare shapes
+        output = camera.data.output
+        self.assertEqual(output["rgb"].shape, hw_3c_shape)
+        # access image data and compare dtype
+        self.assertEqual(output["rgb"].dtype, torch.uint8)
+
+    def test_camera_resolution_rgba_only(self):
+        """Test camera resolution is correctly set for RGBA only."""
+        # Add all types
+        camera_cfg = copy.deepcopy(self.camera_cfg)
+        camera_cfg.data_types = [
+            "rgba",
+        ]
+        # Create camera
+        camera = Camera(camera_cfg)
+
+        # Play sim
+        self.sim.reset()
+
+        # Simulate for a few steps
+        # note: This is a workaround to ensure that the textures are loaded.
+        #   Check "Known Issues" section in the documentation for more details.
+        for _ in range(5):
+            self.sim.step()
+        camera.update(self.dt)
+
+        # expected sizes
+        hw_4c_shape = (1, camera_cfg.height, camera_cfg.width, 4)
+        # access image data and compare shapes
+        output = camera.data.output
+        self.assertEqual(output["rgba"].shape, hw_4c_shape)
+        # access image data and compare dtype
+        self.assertEqual(output["rgba"].dtype, torch.uint8)
+
+    def test_camera_resolution_depth_only(self):
+        """Test camera resolution is correctly set for depth only."""
+        # Add all types
+        camera_cfg = copy.deepcopy(self.camera_cfg)
+        camera_cfg.data_types = [
+            "depth",
+        ]
+        # Create camera
+        camera = Camera(camera_cfg)
+
+        # Play sim
+        self.sim.reset()
+
+        # Simulate for a few steps
+        # note: This is a workaround to ensure that the textures are loaded.
+        #   Check "Known Issues" section in the documentation for more details.
+        for _ in range(5):
+            self.sim.step()
+        camera.update(self.dt)
+
+        # expected sizes
+        hw_1c_shape = (1, camera_cfg.height, camera_cfg.width, 1)
+        # access image data and compare shapes
+        output = camera.data.output
+        self.assertEqual(output["depth"].shape, hw_1c_shape)
+        # access image data and compare dtype
+        self.assertEqual(output["depth"].dtype, torch.float)
 
     def test_throughput(self):
         """Checks that the single camera gets created properly with a rig."""
@@ -443,29 +555,20 @@ class TestCamera(unittest.TestCase):
             # Save images
             with Timer(f"Time taken for writing data with shape {camera.image_shape}   "):
                 # Pack data back into replicator format to save them using its writer
-                if self.sim.get_version()[0] == 4:
-                    rep_output = {"annotators": {}}
-                    camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
-                    for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
-                        if info is not None:
-                            rep_output["annotators"][key] = {"render_product": {"data": data, **info}}
-                        else:
-                            rep_output["annotators"][key] = {"render_product": {"data": data}}
-                else:
-                    rep_output = dict()
-                    camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
-                    for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
-                        if info is not None:
-                            rep_output[key] = {"data": data, "info": info}
-                        else:
-                            rep_output[key] = data
+                rep_output = {"annotators": {}}
+                camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
+                for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
+                    if info is not None:
+                        rep_output["annotators"][key] = {"render_product": {"data": data, **info}}
+                    else:
+                        rep_output["annotators"][key] = {"render_product": {"data": data}}
                 # Save images
                 rep_output["trigger_outputs"] = {"on_time": camera.frame[0]}
                 rep_writer.write(rep_output)
             print("----------------------------------------")
             # Check image data
             for im_data in camera.data.output.values():
-                self.assertEqual(im_data.shape, (1, camera_cfg.height, camera_cfg.width))
+                self.assertEqual(im_data.shape, (1, camera_cfg.height, camera_cfg.width, 1))
 
     """
     Helper functions.

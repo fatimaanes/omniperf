@@ -113,7 +113,7 @@ def reshape_tiled_image(
 
     # copy the pixel values into the batched image
     for i in range(num_channels):
-        batched_image[camera_id, height_id, width_id, i] = wp.float32(tiled_image_buffer[pixel_start + i])
+        batched_image[camera_id, height_id, width_id, i] = batched_image.dtype(tiled_image_buffer[pixel_start + i])
 
 
 wp.overload(reshape_tiled_image, {"tiled_image_buffer": wp.array(dtype=wp.uint8)})
@@ -128,7 +128,6 @@ def reshape_tiled_image_old(
     image_width: int,
     num_channels: int,
     num_tiles_x: int,
-    offset: int,
 ):
     """Reshapes a tiled image into a batch of images.
 
@@ -143,7 +142,6 @@ def reshape_tiled_image_old(
         image_height: The height of the image.
         num_channels: The number of channels in the image.
         num_tiles_x: The number of tiles in x-direction.
-        offset: The offset in the image buffer. This is used when multiple image types are concatenated in the buffer.
     """
     # get the thread id
     camera_id, height_id, width_id = wp.tid()
@@ -153,8 +151,7 @@ def reshape_tiled_image_old(
     tile_y_id = camera_id // num_tiles_x
     # compute the start index of the pixel in the tiled image buffer
     pixel_start = (
-        offset
-        + num_channels * num_tiles_x * image_width * (image_height * tile_y_id + height_id)
+        num_channels * num_tiles_x * image_width * (image_height * tile_y_id + height_id)
         + num_channels * tile_x_id * image_width
         + num_channels * width_id
     )
@@ -162,3 +159,19 @@ def reshape_tiled_image_old(
     # copy the pixel values into the batched image
     for i in range(num_channels):
         batched_image[camera_id, height_id, width_id, i] = tiled_image_buffer[pixel_start + i]
+
+# uint32 -> int32 conversion is required for non-colored segmentation annotators
+wp.overload(
+    reshape_tiled_image,
+    {"tiled_image_buffer": wp.array(dtype=wp.uint32), "batched_image": wp.array(dtype=wp.uint32, ndim=4)},
+)
+# uint8 is used for 4 channel annotators
+wp.overload(
+    reshape_tiled_image,
+    {"tiled_image_buffer": wp.array(dtype=wp.uint8), "batched_image": wp.array(dtype=wp.uint8, ndim=4)},
+)
+# float32 is used for single channel annotators
+wp.overload(
+    reshape_tiled_image,
+    {"tiled_image_buffer": wp.array(dtype=wp.float32), "batched_image": wp.array(dtype=wp.float32, ndim=4)},
+)

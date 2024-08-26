@@ -23,7 +23,7 @@ from omni.isaac.lab.sim.spawners.materials.physics_materials_cfg import RigidBod
 from omni.isaac.lab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 from omni.isaac.lab.utils import configclass
 
-from .shadow_hand_env import ShadowHandEnv, unscale
+from omni.isaac.lab_tasks.direct.inhand_manipulation.inhand_manipulation_env import InHandManipulationEnv, unscale
 from .shadow_hand_env_cfg import ShadowHandEnvCfg
 
 from omni.isaac.lab.utils.math import quat_conjugate, quat_from_angle_axis, quat_mul
@@ -121,7 +121,7 @@ class ShadowHandDepthCameraAsymmetricEnvCfg(ShadowHandDepthCameraEnvCfg):
 
     
 
-class ShadowHandCameraEnv(ShadowHandEnv):
+class ShadowHandCameraEnv(InHandManipulationEnv):
     cfg: ShadowHandEnvCfg
 
     def __init__(self, cfg: ShadowHandEnvCfg, render_mode: str | None = None, **kwargs):

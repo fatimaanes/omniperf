@@ -7,7 +7,6 @@ import builtins
 import enum
 import numpy as np
 import sys
-import torch
 import traceback
 import weakref
 from collections.abc import Iterator
@@ -146,6 +145,8 @@ class SimulationContext(_SimulationContext):
         # casting None to False if the flag doesn't exist
         # this flag is set from the AppLauncher class
         self._offscreen_render = bool(carb_settings_iface.get("/isaaclab/render/offscreen"))
+        # read flag for whether the default viewport should be enabled
+        self._render_viewport = bool(carb_settings_iface.get("/isaaclab/render/active_viewport"))
         # flag for whether any GUI will be rendered (local, livestreamed or viewport)
         self._has_gui = self._local_gui or self._livestream_gui
 
@@ -183,6 +184,14 @@ class SimulationContext(_SimulationContext):
             # rendering frequency in terms of number of render calls
             self._render_throttle_period = 5
 
+        # check the case where we don't need to render the viewport
+        # since render_viewport can only be False in headless mode, we only need to check for offscreen_render
+        if not self._render_viewport and self._offscreen_render:
+            # disable the viewport if offscreen_render is enabled
+            from omni.kit.viewport.utility import get_active_viewport
+
+            get_active_viewport().updates_enabled = False
+
         # override enable scene querying if rendering is enabled
         # this is needed for some GUI features
         if self._has_gui:
@@ -195,12 +204,6 @@ class SimulationContext(_SimulationContext):
         # read isaac sim version (this includes build tag, release tag etc.)
         # note: we do it once here because it reads the VERSION file from disk and is not expected to change.
         self._isaacsim_version = get_version()
-
-        # create a tensor for gravity
-        # note: this line is needed to create a "tensor" in the device to avoid issues with torch 2.1 onwards.
-        #   the issue is with some heap memory corruption when torch tensor is created inside the asset class.
-        #   you can reproduce the issue by commenting out this line and running the test `test_articulation.py`.
-        self._gravity_tensor = torch.tensor(self.cfg.gravity, dtype=torch.float32, device=self.cfg.device)
 
         # add callback to deal the simulation app when simulation is stopped.
         # this is needed because physics views go invalid once we stop the simulation
