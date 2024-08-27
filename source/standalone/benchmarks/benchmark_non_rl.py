@@ -81,6 +81,7 @@ from datetime import datetime
 from omni.isaac.lab.utils.dict import print_dict
 
 import omni.isaac.lab_tasks  # noqa: F401
+import humanoid.tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import parse_env_cfg
 
 imports_time_end = time.perf_counter_ns()
