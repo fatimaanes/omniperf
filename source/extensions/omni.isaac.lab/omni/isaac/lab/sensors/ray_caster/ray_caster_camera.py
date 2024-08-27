@@ -286,9 +286,11 @@ class RayCasterCamera(RayCaster):
                     (ray_depth[:, :, None] * ray_directions_w),
                 )
             )[:, :, 0]
-            self._data.output["distance_to_image_plane"][env_ids] = distance_to_image_plane.view(-1, *self.image_shape)
+            self._data.output["distance_to_image_plane"][env_ids] = distance_to_image_plane.view(
+                -1, *self.image_shape, 1
+            )
         if "distance_to_camera" in self.cfg.data_types:
-            self._data.output["distance_to_camera"][env_ids] = ray_depth.view(-1, *self.image_shape)
+            self._data.output["distance_to_camera"][env_ids] = ray_depth.view(-1, *self.image_shape, 1)
         if "normals" in self.cfg.data_types:
             self._data.output["normals"][env_ids] = ray_normal.view(-1, *self.image_shape, 3)
 
@@ -334,7 +336,7 @@ class RayCasterCamera(RayCaster):
         self._data.info = [{name: None for name in self.cfg.data_types}] * self._view.count
         for name in self.cfg.data_types:
             if name in ["distance_to_image_plane", "distance_to_camera"]:
-                shape = (self.cfg.pattern_cfg.height, self.cfg.pattern_cfg.width)
+                shape = (self.cfg.pattern_cfg.height, self.cfg.pattern_cfg.width, 1)
             elif name in ["normals"]:
                 shape = (self.cfg.pattern_cfg.height, self.cfg.pattern_cfg.width, 3)
             else:

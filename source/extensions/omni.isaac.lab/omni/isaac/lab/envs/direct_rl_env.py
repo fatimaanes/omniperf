@@ -96,8 +96,6 @@ class DirectRLEnv(gym.Env):
         print(f"\tPhysics step-size     : {self.physics_dt}")
         print(f"\tRendering step-size   : {self.physics_dt * self.cfg.sim.render_interval}")
         print(f"\tEnvironment step-size : {self.step_dt}")
-        print(f"\tPhysics GPU pipeline  : {self.cfg.sim.use_gpu_pipeline}")
-        print(f"\tPhysics GPU simulation: {self.cfg.sim.physx.use_gpu}")
 
         if self.cfg.sim.render_interval < self.cfg.decimation:
             msg = (
@@ -174,11 +172,11 @@ class DirectRLEnv(gym.Env):
         # setup noise cfg for adding action and observation noise
         if self.cfg.action_noise_model:
             self._action_noise_model: NoiseModel = self.cfg.action_noise_model.class_type(
-                self.num_envs, self.cfg.action_noise_model, self.device
+                self.cfg.action_noise_model, num_envs=self.num_envs, device=self.device
             )
         if self.cfg.observation_noise_model:
             self._observation_noise_model: NoiseModel = self.cfg.observation_noise_model.class_type(
-                self.num_envs, self.cfg.observation_noise_model, self.device
+                self.cfg.observation_noise_model, num_envs=self.num_envs, device=self.device
             )
 
         # perform events at the start of the simulation
@@ -285,9 +283,11 @@ class DirectRLEnv(gym.Env):
         Returns:
             A tuple containing the observations, rewards, resets (terminated and truncated) and extras.
         """
+        action = action.to(self.device)
         # add action noise
         if self.cfg.action_noise_model:
-            action = self._action_noise_model.apply(action.clone())
+            action = self._action_noise_model.apply(action)
+
         # process actions
         self._pre_physics_step(action)
 
@@ -518,7 +518,8 @@ class DirectRLEnv(gym.Env):
         # apply events such as randomization for environments that need a reset
         if self.cfg.events:
             if "reset" in self.event_manager.available_modes:
-                self.event_manager.apply(env_ids=env_ids, mode="reset")
+                env_step_count = self._sim_step_counter // self.cfg.decimation
+                self.event_manager.apply(mode="reset", env_ids=env_ids, global_env_step_count=env_step_count)
 
         # reset noise models
         if self.cfg.action_noise_model:

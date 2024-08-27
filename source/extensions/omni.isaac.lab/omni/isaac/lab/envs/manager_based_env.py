@@ -5,7 +5,6 @@
 
 import builtins
 import torch
-import warnings
 from collections.abc import Sequence
 from typing import Any
 
@@ -93,8 +92,6 @@ class ManagerBasedEnv:
         print(f"\tPhysics step-size     : {self.physics_dt}")
         print(f"\tRendering step-size   : {self.physics_dt * self.cfg.sim.render_interval}")
         print(f"\tEnvironment step-size : {self.step_dt}")
-        print(f"\tPhysics GPU pipeline  : {self.cfg.sim.use_gpu_pipeline}")
-        print(f"\tPhysics GPU simulation: {self.cfg.sim.physx.use_gpu}")
 
         if self.cfg.sim.render_interval < self.cfg.decimation:
             msg = (
@@ -201,17 +198,6 @@ class ManagerBasedEnv:
             :meth:`SimulationContext.reset_async` and it isn't possible to call async functions in the constructor.
 
         """
-        # check the configs
-        if self.cfg.randomization is not None:
-            msg = (
-                "The 'randomization' attribute is deprecated and will be removed in a future release. "
-                "Please use the 'events' attribute to configure the randomization settings."
-            )
-            warnings.warn(msg, category=DeprecationWarning)
-            carb.log_warn(msg)
-            # set the randomization as events (for backward compatibility)
-            self.cfg.events = self.cfg.randomization
-
         # prepare the managers
         # -- action manager
         self.action_manager = ActionManager(self.cfg.actions, self)
@@ -271,7 +257,7 @@ class ManagerBasedEnv:
             A tuple containing the observations and extras.
         """
         # process actions
-        self.action_manager.process_action(action)
+        self.action_manager.process_action(action.to(self.device))
 
         # check if we need to do rendering within the physics loop
         # note: checked here once to avoid multiple checks within the loop
@@ -351,9 +337,10 @@ class ManagerBasedEnv:
         """
         # reset the internal buffers of the scene elements
         self.scene.reset(env_ids)
-        # apply events such as randomizations for environments that need a reset
+        # apply events such as randomization for environments that need a reset
         if "reset" in self.event_manager.available_modes:
-            self.event_manager.apply(env_ids=env_ids, mode="reset")
+            env_step_count = self._sim_step_counter // self.cfg.decimation
+            self.event_manager.apply(mode="reset", env_ids=env_ids, global_env_step_count=env_step_count)
 
         # iterate over all managers and reset them
         # this returns a dictionary of information which is stored in the extras

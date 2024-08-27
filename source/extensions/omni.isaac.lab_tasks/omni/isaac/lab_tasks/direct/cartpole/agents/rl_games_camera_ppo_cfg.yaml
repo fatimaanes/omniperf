@@ -60,7 +60,7 @@ params:
   load_path: '' # path to the checkpoint to load
 
   config:
-    name: cartpole_camera_direct
+    name: cartpole_camera_direct_new_2GPU
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'

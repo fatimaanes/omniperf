@@ -131,7 +131,7 @@ class TestWarpCamera(unittest.TestCase):
             # check image data
             for im_data in camera.data.output.to_dict().values():
                 self.assertEqual(
-                    im_data.shape, (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width)
+                    im_data.shape, (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width, 1)
                 )
 
     def test_camera_resolution(self):
@@ -148,7 +148,9 @@ class TestWarpCamera(unittest.TestCase):
         camera.update(self.dt)
         # access image data and compare shapes
         for im_data in camera.data.output.to_dict().values():
-            self.assertTrue(im_data.shape == (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width))
+            self.assertTrue(
+                im_data.shape == (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width, 1)
+            )
 
     def test_camera_init_offset(self):
         """Test camera initialization with offset using different conventions."""
@@ -240,7 +242,7 @@ class TestWarpCamera(unittest.TestCase):
             for cam in [cam_1, cam_2]:
                 for im_data in cam.data.output.to_dict().values():
                     self.assertEqual(
-                        im_data.shape, (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width)
+                        im_data.shape, (1, self.camera_cfg.pattern_cfg.height, self.camera_cfg.pattern_cfg.width, 1)
                     )
 
     def test_camera_set_world_poses(self):
@@ -344,29 +346,20 @@ class TestWarpCamera(unittest.TestCase):
             # Save images
             with Timer(f"Time taken for writing data with shape {camera.image_shape}   "):
                 # Pack data back into replicator format to save them using its writer
-                if self.sim.get_version()[0] == 4:
-                    rep_output = {"annotators": {}}
-                    camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
-                    for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
-                        if info is not None:
-                            rep_output["annotators"][key] = {"render_product": {"data": data, **info}}
-                        else:
-                            rep_output["annotators"][key] = {"render_product": {"data": data}}
-                else:
-                    rep_output = dict()
-                    camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
-                    for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
-                        if info is not None:
-                            rep_output[key] = {"data": data, "info": info}
-                        else:
-                            rep_output[key] = data
+                rep_output = {"annotators": {}}
+                camera_data = convert_dict_to_backend(camera.data.output[0].to_dict(), backend="numpy")
+                for key, data, info in zip(camera_data.keys(), camera_data.values(), camera.data.info[0].values()):
+                    if info is not None:
+                        rep_output["annotators"][key] = {"render_product": {"data": data, **info}}
+                    else:
+                        rep_output["annotators"][key] = {"render_product": {"data": data}}
                 # Save images
                 rep_output["trigger_outputs"] = {"on_time": camera.frame[0]}
                 rep_writer.write(rep_output)
             print("----------------------------------------")
             # Check image data
             for im_data in camera.data.output.values():
-                self.assertEqual(im_data.shape, (1, camera_cfg.pattern_cfg.height, camera_cfg.pattern_cfg.width))
+                self.assertEqual(im_data.shape, (1, camera_cfg.pattern_cfg.height, camera_cfg.pattern_cfg.width, 1))
 
     def test_output_equal_to_usdcamera(self):
         camera_pattern_cfg = patterns.PinholeCameraPatternCfg(
