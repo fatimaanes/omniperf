@@ -49,7 +49,7 @@ class ShadowHandRGBCameraEnvCfg(ShadowHandEnvCfg):
         width = int(os.environ.get("ISAAC_LAB_CAMERA_WIDTH", 320)),
         height = int(os.environ.get("ISAAC_LAB_CAMERA_HEIGHT", 240)),
     )
-    write_image_to_file = True
+    write_image_to_file = False
 
     # env
     num_channels = 3
